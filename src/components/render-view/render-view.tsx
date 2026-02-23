@@ -1,52 +1,53 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { WorldMap } from "./world-map";
 
-export const RenderView = () => {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+const RenderView = () => {
+  const canvasRef = useRef(null);
+  let camera: THREE.OrthographicCamera;
 
   useEffect(() => {
-    if (!containerRef.current) return;
-    console.log("mount");
-
-    // camera
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-    camera.position.set(10, 5, 10);
-    camera.lookAt(0, 0, 0); // 카메라가 박스를 바라보도록 설정
+    if (!canvasRef.current) return;
 
     const scene = new THREE.Scene();
+    const renderer = new THREE.WebGLRenderer({
+      canvas: canvasRef.current,
+      antialias: true,
+    });
 
-    // renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const width = 800;
+    const height = 800;
     renderer.setSize(width, height);
-    containerRef.current.appendChild(renderer.domElement);
-    // cube mesh
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    const cube = new THREE.Mesh(geometry, material);
-    scene.add(cube);
 
-    // animate
-    const animate = () => {
-      cube.rotation.x += 0.01;
-      cube.rotation.y += 0.01;
+    camera = new THREE.OrthographicCamera(
+      -width / 2,
+      width / 2,
+      height / 2,
+      -height / 2,
+      -1000,
+      1000
+    );
+
+    camera.position.set(0, 500, 0);
+    camera.lookAt(0, 0, 0);
+    console.log("카메라 좌/우", camera.left, camera.right);
+    console.log("카메라 위/아래", camera.top, camera.bottom);
+    const world = new WorldMap(scene, width, height);
+    world.init();
+
+    function animate() {
+      world.update();
       renderer.render(scene, camera);
-    };
+    }
+
     renderer.setAnimationLoop(animate);
 
     return () => {
-      renderer.setAnimationLoop(null);
-      geometry.dispose();
-      material.dispose();
       renderer.dispose();
-      if (containerRef.current) {
-        containerRef.current.innerHTML = "";
-      }
-      containerRef.current?.removeChild(renderer.domElement);
-      console.log("정리");
     };
-  }, []);
+  }, [canvasRef.current]);
 
-  return <div ref={containerRef} id="canvas-container" />;
+  return <canvas ref={canvasRef} width={800} height={800} />;
 };
+
+export default RenderView;
